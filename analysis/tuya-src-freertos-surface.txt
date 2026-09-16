@@ -1,0 +1,70 @@
+=== TuyaOpen 自身源码对 FreeRTOS 的依赖面 ===
+（排除 platform/ 下的 Beken SDK 与 FreeRTOS 自身源码）
+
+--- src ---
+  命中文件: 10   调用次数: 62
+  最密集的文件 top 15:
+      33  liblvgl\v9\lvgl\src\osal\lv_freertos.c
+       5  liblvgl\v8\lvgl\src\draw\nxp\pxp\lv_gpu_nxp_pxp_osa.c
+       5  liblvgl\v9\lvgl\src\draw\nxp\pxp\lv_pxp_osa.c
+       4  tal_kv\FlashDB\demos\esp32_spi_flash\main\main.c
+       4  tal_kv\FlashDB\demos\esp8266_spi_flash\main\hello_world_main.c
+       3  tal_kv\FlashDB\demos\esp32_spi_flash\components\FlashDB\porting\fal_flash_esp32_port.c
+       3  tal_kv\FlashDB\demos\esp8266_spi_flash\components\FlashDB\porting\fal_flash_esp8266_port.c
+       2  libcjson\cJSON\tests\unity\extras\fixture\src\unity_fixture_malloc_overrides.h
+       2  tuya_cloud_service\tls\tuya_tls.c
+       1  tal_bluetooth\nimble\host\tuya_ble_os_adapter.c
+  用到的 API top 20:
+      13  xsemaphoretake
+      11  xsemaphoregive
+       6  vsemaphoredelete
+       5  xsemaphorecreatecounting
+       3  portyield_from_isr
+       2  xsemaphoregivefromisr
+       2  xsemaphorecreatebinary
+       2  taskenter_critical
+       2  taskexit_critical
+       2  vtaskdelete
+       2  xsemaphorecreatemutex
+       2  vtaskdelay
+       1  pvportmalloc
+       1  vportfree
+       1  xtaskcreate
+       1  xsemaphoretakefromisr
+       1  xtaskgetcurrenttaskhandle
+       1  ultasknotifytake
+       1  xtasknotifygive
+       1  xtaskgetschedulerstate
+
+--- boards ---
+  命中文件: 2   调用次数: 8
+  最密集的文件 top 15:
+       5  ESP32\common\lcd\tdd_disp_esp_dpi.c
+       3  ESP32\common\lcd\tdd_disp_esp_rgb.c
+  用到的 API top 20:
+       3  vsemaphoredelete
+       2  xsemaphoregivefromisr
+       2  xsemaphorecreatebinary
+       1  xsemaphoretake
+
+=== 合计: 70 处 ===
+
+=== 重点目录逐个看 ===
+  src/tuya_cloud_service       文件命中   1  调用    2
+           2  tls\tuya_tls.c
+  src/ai_components            文件命中   0  调用    0
+  src/tal_kv                   文件命中   4  调用   14
+           4  FlashDB\demos\esp32_spi_flash\main\main.c
+           4  FlashDB\demos\esp8266_spi_flash\main\hello_world_main.c
+           3  FlashDB\demos\esp32_spi_flash\components\FlashDB\porting\fal_flash_esp32_port.c
+           3  FlashDB\demos\esp8266_spi_flash\components\FlashDB\porting\fal_flash_esp8266_port.c
+  src/tal_bluetooth            文件命中   1  调用    1
+           1  nimble\host\tuya_ble_os_adapter.c
+  src/tal_wifi                 文件命中   0  调用    0
+  src/tal_network              文件命中   0  调用    0
+  src/libcjson                 文件命中   1  调用    2
+           2  cJSON\tests\unity\extras\fixture\src\unity_fixture_malloc_overrides.h
+  src/liblvgl                  文件命中   3  调用   43
+          33  v9\lvgl\src\osal\lv_freertos.c
+           5  v8\lvgl\src\draw\nxp\pxp\lv_gpu_nxp_pxp_osa.c
+           5  v9\lvgl\src\draw\nxp\pxp\lv_pxp_osa.c

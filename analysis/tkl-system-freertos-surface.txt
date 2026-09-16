@@ -1,0 +1,46 @@
+=== TKL 系统层（<TuyaOpenSDK>\platform\T5AI\tuyaos\tuyaos_adapter\src\system）===
+
+文件                          调用数  用到的 FreeRTOS API
+----------------------------------------------------------------------------------------------------
+tkl_thread.c                 11  tskNO_AFFINITY×3, xTaskCreatePinnedToCore×2, xTaskCreateInPsram×2, xTaskGetCurrentTaskHandle×2, xTaskCreate×1, vTaskDelete×1
+tkl_mutex.c                   9  xSemaphoreGive×2, xSemaphoreCreateRecursiveMutex×1, xSemaphoreCreateMutex×1, xSemaphoreTakeRecursive×1, xSemaphoreTake×1, xSemaphoreGiveRecursive×1, xSemaphoreGiveFromISR×1, vSemaphoreDelete×1
+tkl_task_notify.c             8  ulTaskNotifyTake×2, xTaskNotifyFromISR×1, xTaskNotify×1, xTaskGetCurrentTaskHandle×1, vTaskNotifyGiveFromISR×1, xTaskNotifyGive×1, xTaskNotifyStateClear×1
+tkl_queue.c                   7  xQueueSend×2, xQueueReceive×2, xQueueCreate×1, xQueueSendFromISR×1, uxQueueMessagesWaiting×1
+tkl_semaphore.c               6  xSemaphoreTake×2, xSemaphoreCreateCounting×1, xSemaphoreGive×1, xSemaphoreGiveFromISR×1, vSemaphoreDelete×1
+tkl_system.c                  6  vTaskDelete×1, xTaskCreate×1, xTaskGetTickCount×1, vTaskDelay×1, xPortGetFreeHeapSize×1, xPortGetMinimumEverFreeHeapSize×1
+----------------------------------------------------------------------------------------------------
+合计                           47
+
+=== 去重后的 API 清单（这就是最小垫片要实现的面）===
+      3  xSemaphoreTake
+      3  xSemaphoreGive
+      3  xTaskGetCurrentTaskHandle
+      3  tskNO_AFFINITY
+      2  xSemaphoreGiveFromISR
+      2  vSemaphoreDelete
+      2  xQueueSend
+      2  xQueueReceive
+      2  vTaskDelete
+      2  xTaskCreate
+      2  ulTaskNotifyTake
+      2  xTaskCreatePinnedToCore
+      2  xTaskCreateInPsram
+      1  xSemaphoreCreateRecursiveMutex
+      1  xSemaphoreCreateMutex
+      1  xSemaphoreTakeRecursive
+      1  xSemaphoreGiveRecursive
+      1  xQueueCreate
+      1  xQueueSendFromISR
+      1  uxQueueMessagesWaiting
+      1  xSemaphoreCreateCounting
+      1  xTaskGetTickCount
+      1  vTaskDelay
+      1  xPortGetFreeHeapSize
+      1  xPortGetMinimumEverFreeHeapSize
+      1  xTaskNotifyFromISR
+      1  xTaskNotify
+      1  vTaskNotifyGiveFromISR
+      1  xTaskNotifyGive
+      1  xTaskNotifyStateClear
+
+不同 API 种类: 30

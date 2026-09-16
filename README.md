@@ -88,6 +88,7 @@ Beken 的 `bk_rtos` **本来就是一层可替换的 OS 抽象层** —— 它�
 | [`docs/05-open-questions.md`](docs/05-open-questions.md) | 未决项与风险 |
 | [`docs/06-board-bk7258-checklist.md`](docs/06-board-bk7258-checklist.md) | **`board/bk7258/` 逐文件实现清单**（含实测内存映射、上游改动面、验收阶梯） |
 | [`docs/07-build-environment.md`](docs/07-build-environment.md) | **构建环境与上游缺陷**（WSL 搭建、五个坑的现象/根因/修法、基线验证结果） |
+| [`docs/08-keeping-tuya-stack.md`](docs/08-keeping-tuya-stack.md) | **换掉 RTOS 后涂鸦那套还保不保得住**（实测移植面、智能体编排为何不受影响、两套垫片） |
 
 ---
 
