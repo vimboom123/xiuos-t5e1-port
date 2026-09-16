@@ -1,0 +1,19 @@
+# 上游（体积大，按 docs/00 单独获取）
+/xiuos/
+/TuyaOpenSDK/
+upstream/
+
+# 构建产物
+*.o  *.a  *.elf  *.bin  *.map  *.hex  *.lst  *.d
+build/  .build/  dist/
+__pycache__/  *.pyc
+
+# 编辑器 / 系统
+.vscode/  .idea/  *.swp  *~
+.DS_Store  Thumbs.db
+
+# 凭据（绝不能进仓库）
+*credentials*.json
+*tuya_config.h
+*sk.tmp
+*.pem  *.key

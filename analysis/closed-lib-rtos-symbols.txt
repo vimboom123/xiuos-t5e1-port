@@ -1,0 +1,31 @@
+libwifi.a                                  未定义符号   1915 个，其中 RTOS 相关  15 个
+libwifi_csi.a                              未定义符号   2009 个，其中 RTOS 相关  19 个
+libbluetooth_controller_dual.a             未定义符号   2352 个，其中 RTOS 相关   6 个
+libbluetooth_host_dm_dual.a                未定义符号   3152 个，其中 RTOS 相关   0 个
+libbluetooth_host_dm_dual_ap.a             未定义符号   3151 个，其中 RTOS 相关   0 个
+libfdk_aac_enc.a                           未定义符号   1048 个，其中 RTOS 相关   0 个
+
+=== 闭源库需要的 RTOS 符号（并集，共 23 个）===
+  rtos_disable_int                               被 3 个库引用
+  rtos_enable_int                                被 3 个库引用
+  os_free_debug                                  被 2 个库引用
+  os_malloc_debug                                被 2 个库引用
+  os_memcmp                                      被 2 个库引用
+  os_memcpy                                      被 2 个库引用
+  os_memmove                                     被 2 个库引用
+  os_memset                                      被 2 个库引用
+  rtos_create_thread                             被 2 个库引用
+  rtos_deinit_queue                              被 2 个库引用
+  rtos_delay_milliseconds                        被 2 个库引用
+  rtos_delete_thread                             被 2 个库引用
+  rtos_init_queue                                被 2 个库引用
+  rtos_pop_from_queue                            被 2 个库引用
+  rtos_push_to_queue                             被 2 个库引用
+  rtos_deinit_semaphore                          被 1 个库引用
+  rtos_get_semaphore                             被 1 个库引用
+  rtos_init_semaphore                            被 1 个库引用
+  rtos_set_semaphore                             被 1 个库引用
+  rtos_deinit_mutex                              被 1 个库引用
+  rtos_init_mutex                                被 1 个库引用
+  rtos_lock_mutex                                被 1 个库引用
+  rtos_unlock_mutex                              被 1 个库引用

@@ -1,0 +1,102 @@
+扫描 .c/.h/.cpp 文件数: 15616
+命中 FreeRTOS API 的文件数: 239
+API 调用总次数: 3568
+不同 API 种类: 78
+
+=== 按 SDK 顶层目录分布（调用次数）===
+  platform/T5AI                                                  3494
+  src/liblvgl                                                      47
+  src/tal_kv                                                       14
+  boards/ESP32                                                      8
+  src/libcjson                                                      2
+  src/tuya_cloud_service                                            2
+  src/tal_bluetooth                                                 1
+
+=== API 使用频次 Top 60（这就是垫片层必须实现的面）===
+  xsemaphoretake                                311
+  taskexit_critical                             200
+  taskenter_critical                            166
+  pvportmalloc                                  159
+  xsemaphoregive                                135
+  vportfree                                     132
+  vtaskdelay                                    115
+  xsemaphorecreatebinary                         92
+  xtaskgettickcount                              90
+  xtaskcreate                                    87
+  vsemaphoredelete                               85
+  xsemaphoregivefromisr                          78
+  xqueuereceive                                  69
+  xqueuecreate                                   66
+  xsemaphorecreatemutex                          64
+  uxtaskpriorityget                              64
+  xtaskgetcurrenttaskhandle                      59
+  xtimerstart                                    58
+  portexit_critical                              54
+  xtimercreate                                   49
+  xeventgroupwaitbits                            45
+  xqueuesend                                     45
+  vtaskdelete                                    45
+  portyield_from_isr                             45
+  xeventgroupsetbits                             44
+  xsemaphorecreatecounting                       44
+  vtaskresume                                    44
+  taskyield                                      43
+  portenter_critical                             41
+  portset_interrupt_mask_from_isr                40
+  vtasksuspend                                   39
+  xeventgroupcreate                              35
+  xtimerchangeperiod                             35
+  xtaskgetschedulerstate                         35
+  xqueuesendtoback                               35
+  xeventgroupclearbits                           34
+  uxqueuemessageswaiting                         34
+  xtaskcreatestatic                              34
+  xqueuesendtofront                              32
+  xtasknotify                                    32
+  xqueuesendfromisr                              31
+  xportgetfreeheapsize                           31
+  ultasknotifytakeindexed                        31
+  xtimerstop                                     30
+  xsemaphorecreaterecursivemutex                 30
+  xstreambuffersend                              30
+  xstreambufferreceive                           30
+  vtaskstartscheduler                            29
+  xqueueselectfromset                            26
+  xtimerdelete                                   23
+  vtaskpriorityset                               22
+  pctaskgetname                                  22
+  xportgetminimumeverfreeheapsize                22
+  prvaddcurrenttasktodelayedlist                 22
+  vtaskplaceoneventlist                          21
+  xqueuepeek                                     20
+  xqueuereceivefromisr                           19
+  ultasknotifytake                               18
+  xtasknotifywait                                17
+  xqueuecreateset                                15
+
+=== 调用最密集的 25 个文件 ===
+     195  platform\T5AI\t5_os\cp\components\os_source\freertos_v10\include\task.h
+     177  platform\T5AI\t5_os\ap\components\os_source\freertos_smp_v2p0\FreeRTOS-Kernel\include\freertos\task.h
+     123  platform\T5AI\t5_os\cp\components\os_source\freertos_v10\tasks.c
+     121  platform\T5AI\t5_os\ap\components\os_source\freertos_smp_v2p0\FreeRTOS-Kernel\tasks.c
+     116  platform\T5AI\t5_os\ap\components\os_source\freertos_smp_v2p0\FreeRTOS-Kernel\queue.c
+     105  platform\T5AI\t5_os\cp\components\os_source\freertos_v10\include\queue.h
+     102  platform\T5AI\t5_os\ap\components\demos\os\smp\inherit\priority_inversion.c
+     102  platform\T5AI\t5_os\cp\components\demos\os\smp\inherit\priority_inversion.c
+     101  platform\T5AI\t5_os\cp\components\os_source\freertos_v10\include\semphr.h
+      97  platform\T5AI\t5_os\ap\components\os_source\freertos_smp_v2p0\FreeRTOS-Kernel\include\freertos\queue.h
+      92  platform\T5AI\t5_os\ap\components\os_source\freertos_smp_v2p0\FreeRTOS-Kernel\include\freertos\semphr.h
+      82  platform\T5AI\t5_os\cp\components\os_source\freertos_v10\include\timers.h
+      76  platform\T5AI\t5_os\ap\components\os_source\freertos_smp_v2p0\FreeRTOS-Kernel\include\freertos\timers.h
+      69  platform\T5AI\t5_os\cp\components\os_source\freertos_v10\queue.c
+      62  platform\T5AI\t5_os\ap\components\bk_audio\audio_pipeline\audio_element.c
+      54  platform\T5AI\t5_os\cp\components\os_source\freertos_v10\portable\Common\mpu_wrappers.c
+      53  platform\T5AI\t5_os\ap\components\bk_rtos\freertos\v10\rtos_pub_smp.c
+      53  platform\T5AI\t5_os\cp\components\bk_rtos\freertos\v10\rtos_pub_smp.c
+      48  platform\T5AI\t5_os\ap\components\bk_rtos\freertos\v10\rtos_pub.c
+      48  platform\T5AI\t5_os\cp\components\bk_rtos\freertos\v10\rtos_pub.c
+      47  platform\T5AI\t5_os\cp\components\os_source\freertos_v10\include\event_groups.h
+      42  platform\T5AI\t5_os\ap\components\os_source\freertos_smp_v2p0\FreeRTOS-Kernel\include\freertos\event_groups.h
+      36  platform\T5AI\t5_os\cp\components\os_source\freertos_v10\include\stream_buffer.h
+      34  platform\T5AI\t5_os\ap\components\os_source\freertos_smp_v2p0\FreeRTOS-Kernel\stream_buffer.c
+      33  platform\T5AI\t5_os\ap\components\os_source\freertos_smp_v2p0\FreeRTOS-Kernel\include\freertos\stream_buffer.h
