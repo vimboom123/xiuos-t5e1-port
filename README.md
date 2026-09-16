@@ -311,7 +311,7 @@ m33 架构层对 Renesas FSP 的耦合**精确是 3 处**，全部由 BSP 侧顶
 | [`docs/09-freertos-compat-layer.md`](docs/09-freertos-compat-layer.md) | **FreeRTOS API 兼容层设计**（TKL 所需的 30 个 API 逐条映射 + 实现记录；本层共提供 65 个） |
 | [`docs/10-bringup-uart0.md`](docs/10-bringup-uart0.md) | **上板记录**：CRC 镜像格式、单串口烧录、四个根因、②③ 达成 |
 | [`docs/11-devlog.md`](docs/11-devlog.md) | 开发时间线（本文档原「状态」一节的内容） |
-| [`docs/11-tuyaopen-e2e-baseline.md`](docs/11-tuyaopen-e2e-baseline.md) | 涂鸦端到端基线：CLI 建产品、联泓板级配置、日志改到 UART0、整片烧录、App 配网实测 |
+| [`docs/12-tuyaopen-e2e-baseline.md`](docs/12-tuyaopen-e2e-baseline.md) | 涂鸦端到端基线：CLI 建产品、联泓板级配置、日志改到 UART0、整片烧录、App 配网实测 |
 
 ---
 
@@ -326,6 +326,7 @@ xiuos-t5e1-port/
 │   ├── arch/cortex-m33-notes/
 │   └── board/bk7258/      ← 43 个文件，这就是要进上游的东西
 ├── beken-overlay/         Beken 侧新增文件的 overlay（④ 阶段才需要）
+├── tuyaopen-overlay/      TuyaOpen 侧：联泓板级配置 LINKH_T5E1 + 应用补丁（端到端基线用）
 └── tools/                 构建、烧录、验证脚本
 ```
 
@@ -346,6 +347,8 @@ xiuos-t5e1-port/
 | `tools/flash-and-watch.ps1` | 烧写后在同一口监听，保存原始字节并统计 break |
 | `tools/shell_probe.py` | 逐字发送命令，验证 shell 收发 |
 | `tools/autobaud_watch.py` | 轮询 460800/115200/921600，收到可读文本即锁定 |
+| `tools/tcmd.py` | 向 TuyaOpen 固件的 `tuya>` 命令行发命令并记录输出 |
+| `tools/reset_pairing.py` | 连续 `sys_reboot` 触发重置配网计数 |
 
 ---
 
@@ -361,7 +364,3 @@ xiuos-t5e1-port/
 ## 10. 联系
 
 问题请开 issue。上游 XiUOS：https://www.gitlink.org.cn/xuos/xiuos
-
-- 2026-09-16 深夜　**涂鸦端到端基线（FreeRTOS）上板。** 见 `docs/11`，改动在 `tuyaopen-overlay/`。
-  CLI 复制出新产品，自建 `LINKH_T5E1` 板级配置，TAL 日志挂到 UART0，整片烧录后设备进入配网，
-  App 蓝牙配网链路与令牌下发已通；激活上云待 2.4G 热点复测。

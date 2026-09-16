@@ -1,4 +1,4 @@
-# 11 — 涂鸦端到端基线（TuyaOpen，仍为 FreeRTOS）
+# 12 — 涂鸦端到端基线（TuyaOpen，仍为 FreeRTOS）
 
 目标：在同一块联泓 T5-E1 板上，先用 TuyaOpen 的命令行工具把「建产品 → 编译 → 烧录 → App 配网 → 激活上云」走通，
 再把 AP 核的 FreeRTOS 换成 XiZi。换内核后出问题时，可以据此区分内核问题和涂鸦侧问题。

@@ -169,3 +169,11 @@ BK7258 flash 物理上每 32 字节数据跟 2 字节 CRC16，CPU 地址 = `0x02
 
 见 README §6。最主要是 **Wi-Fi/BLE 还不可用**——XiZi 尚未与 CP 核建立 mailbox 通信，
 那是验收阶梯 ④ 的内容。
+
+---
+
+## 2026-09-16 深夜 — 涂鸦端到端基线（FreeRTOS）
+
+见 [`docs/12`](12-tuyaopen-e2e-baseline.md)，改动在 `tuyaopen-overlay/`。
+CLI 复制出新产品，自建 `LINKH_T5E1` 板级配置，TAL 日志挂到 UART0，整片烧录后设备进入配网。
+App 蓝牙配网链路与令牌下发已通；第一次选的热点不在 2.4G 上（`WSS_NO_AP_FOUND`），激活上云待复测。
