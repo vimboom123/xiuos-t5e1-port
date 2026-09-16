@@ -365,11 +365,50 @@ typedef volatile struct {
 #define BK7258_UART1_BASE   ((bk7258_uart_hw_t *)0x45830000UL)
 #define BK7258_UART2_BASE   ((bk7258_uart_hw_t *)0x45840000UL)
 
-/* 控制台：sdkconfig 里 CONFIG_UART_PRINT_PORT=1、CONFIG_UART_PRINT_BAUD_RATE=460800。
- * 注意这与上游 nuvoton 模板的"UART0 + 115200"都不同。 */
-#define BK7258_CONSOLE_UART      BK7258_UART1_BASE
-#define BK7258_CONSOLE_IRQn      UART1_IRQn
-#define BK7258_CONSOLE_BAUD      460800UL
+/* ==========================================================================
+ * 控制台串口
+ *
+ * 【2026-09-16 实测修正：是 UART0，不是 UART1】
+ *
+ * 最初这里写的是 UART1，依据是 TuyaOpen 的 sdkconfig：
+ *     CONFIG_UART_PRINT_PORT=1 / CONFIG_UART_PRINT_BAUD_RATE=460800
+ * 那个依据**对 TuyaOpen 的 T5AI 开发板成立，对这块板子不成立**。
+ *
+ * 这块板子的排针只引出了一路串口，丝印是：
+ *     GND | CEN | RX0 | TX0 | VBAT
+ * 也就是 **UART0** —— 唯一的对外串口。BKFIL 也正是通过 UART0 完成烧写的。
+ *
+ * 把控制台放在 UART1 的后果是：烧写全部成功、却一个字都收不到，
+ * 换板子也一样。这个错误在 2026-09-16 浪费了一整晚 ——
+ * 教训是**不要从 SDK 的默认配置推断具体硬件的引脚，要看板子**。
+ *
+ * 保守取值：波特率沿用 bootloader 对 UART0 的配置（下载握手用 115200），
+ * 本层不重配 —— 在 UART0 的输入时钟未被实测确认之前，重配等于赌。
+ * 见 connect_uart.c 文件头。
+ * ========================================================================== */
+#define BK7258_CONSOLE_UART      BK7258_UART0_BASE
+#define BK7258_CONSOLE_IRQn      UART0_IRQn
+#define BK7258_CONSOLE_BAUD      115200UL   /* bootrom 下载握手的默认速率 */
+
+/* ==========================================================================
+ * 7. UART0 系统级配置用到的寄存器（bk7258_sys.c: Bk7258Uart0SysInit）
+ *    出处：t5_os/ap/include/soc/bk7258/reg_base.h（CONFIG_SPE=1，无 S/NS 偏移）
+ *          + ap/middleware/soc/bk7258_ap/hal/{sys_ll.h,gpio_ll.h}
+ * ========================================================================== */
+#define BK7258_SYS_REG_BASE        0x44010000UL
+#define BK7258_SYS_CLK_DIV_MODE1   ((volatile uint32_t *)(BK7258_SYS_REG_BASE + (0x08UL << 2)))
+#define BK7258_SYS_DEV_CLK_EN      ((volatile uint32_t *)(BK7258_SYS_REG_BASE + (0x0CUL << 2)))
+#define BK7258_SYS_GPIO_CONFIG1    ((volatile uint32_t *)(BK7258_SYS_REG_BASE + (0x31UL << 2)))
+#define BK7258_SYS_CPU1_INT_EN0    ((volatile uint32_t *)(BK7258_SYS_REG_BASE + (0x22UL << 2)))
+#define BK7258_AON_GPIO_REG_BASE   0x44000400UL
+#define BK7258_AON_GPIO(n)         ((volatile uint32_t *)(BK7258_AON_GPIO_REG_BASE + ((uint32_t)(n) << 2)))
+#define BK7258_UART_CLK_HZ         26000000UL   /* CONFIG_XTAL_FREQ，clksel=XTAL */
+
+void Bk7258Uart0SysInit(void);
+void Bk7258EarlyPutc(char c);
+void Bk7258EarlyPuts(const char *s);
+void Bk7258EarlyBoot(void);
+void Bk7258EarlyBlink(int times);
 
 #ifdef __cplusplus
 }

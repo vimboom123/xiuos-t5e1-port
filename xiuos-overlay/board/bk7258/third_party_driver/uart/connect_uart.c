@@ -47,10 +47,10 @@ struct Bk7258UartHwCfg
     IRQn_Type irq_type;
 };
 
-#ifdef BSP_USING_UART1
-static struct SerialBus serial_bus_1;
-static struct SerialDriver serial_driver_1;
-static struct SerialHardwareDevice serial_device_1;
+#ifdef BSP_USING_UART0
+static struct SerialBus serial_bus_0;
+static struct SerialDriver serial_driver_0;
+static struct SerialHardwareDevice serial_device_0;
 #endif
 
 static void SerialCfgParamCheck(struct SerialCfgParam *serial_cfg_default, struct SerialCfgParam *serial_cfg_new)
@@ -101,21 +101,21 @@ static void UartHandler(struct SerialBus *serial_bus, struct SerialDriver *seria
     serial_hw_cfg->uart_handle->int_status.v = status;
 }
 
-#ifdef BSP_USING_UART1
+#ifdef BSP_USING_UART0
 /*
  * 走 XiUOS 的二级派发：向量表里 IRQ 15 槽是 IsrEntry，它按 IPSR 查 isrManager，
  * 再转到这个函数。签名必须匹配 IsrHandlerType: void (*)(int vector, void *param)。
  */
-void Bk7258Uart1Isr(int vector, void *param)
+void Bk7258Uart0Isr(int vector, void *param)
 {
     x_base lock = 0;
 
     lock = DISABLE_INTERRUPT();
-    UartHandler(&serial_bus_1, &serial_driver_1);
+    UartHandler(&serial_bus_0, &serial_driver_0);
     ENABLE_INTERRUPT(lock);
 }
 
-DECLARE_HW_IRQ(BK7258_CONSOLE_IRQn, Bk7258Uart1Isr, NONE);
+DECLARE_HW_IRQ(BK7258_CONSOLE_IRQn, Bk7258Uart0Isr, NONE);
 #endif
 
 static uint32 SerialInit(struct SerialDriver *serial_drv, struct BusConfigureInfo *configure_info)
@@ -139,10 +139,29 @@ static uint32 SerialInit(struct SerialDriver *serial_drv, struct BusConfigureInf
 
     dev_param->serial_timeout = serial_cfg->data_cfg.serial_timeout;
 
-    /* 记录一下上层要的波特率，便于和实际（bootloader 配的 460800）对照。
-     * 这一版刻意不写 config.clk_div —— 理由见文件头。 */
-    KPrintf("bk7258 uart: requested baud %u, keeping bootloader config (%u)\n",
-            serial_cfg->data_cfg.serial_baud_rate, (uint32)BK7258_CONSOLE_BAUD);
+    /*
+     * ======================================================================
+     * 【必须自己把 UART 打开 —— 这是 2026-09-16 踩的第二个大坑】
+     *
+     * 最初这一版**什么都不配**，理由是"bootloader 已经配好了，别动"。
+     * 那个理由是错的：烧录时是 **bootrom** 自己临时配好 UART0 收发，
+     * 正常启动后**没有任何东西替我们打开 UART0 的发送器**。
+     *
+     * 于是症状是：烧写全部成功（bootrom 的链路是好的），
+     * 但应用一个字都发不出来（tx_enable 是 0，往 FIFO 写等于写进关闭的发送器）。
+     * 而且换波特率、换板子都没用 —— 因为根本不是速率或硬件的问题。
+     *
+     * 修法（2026-09-16 晚第二版）：只开 UART 本体还不够。原厂 TuyaOS 的日志
+     * 走 UART1，UART0 的系统时钟门、时钟源、GPIO10/11 复用都没人管，
+     * 软复位还会清掉 clk_div。全部交给 Bk7258Uart0SysInit() 按 Armino 源码配齐，
+     * 分频显式写成 26M/115200。
+     * ======================================================================
+     */
+    Bk7258Uart0SysInit();
+
+    KPrintf("bk7258 uart: UART0 (P10/P11) 8N1, clk_div %u -> %u bps\n",
+            (uint32)serial_hw_cfg->uart_handle->config.clk_div,
+            (uint32)(BK7258_UART_CLK_HZ / (serial_hw_cfg->uart_handle->config.clk_div + 1U)));
 
     /* 清空并复位 FIFO 状态 */
     serial_hw_cfg->uart_handle->int_status.v = 0xFFFFFFFFU;
@@ -201,17 +220,35 @@ static uint32 SerialDrvConfigure(void *drv, struct BusConfigureInfo *configure_i
     return ret;
 }
 
+/*
+ * 【控制台输出】
+ *
+ * 本板（T5-E1 模组）排针只引出 UART0（P10 RX / P11 TX，丝印 RX0/TX0），
+ * 它同时是 bootrom 烧录口。原厂 TuyaOS 的日志在 UART1（P0 TX / P1 RX），板上未引出。
+ * 所以控制台只写 UART0；UART1 仅在其时钟已被 CP 打开时顺带镜像一份
+ * （uart1_cken = sys reg 0x0C bit10），UART2 不碰 —— 往时钟关着的外设写寄存器
+ * 可能直接卡死总线。
+ *
+ * 数据寄存器整字写入：fifo_port 的位域读-改-写会先读它，而读会取走一个 RX 字节。
+ */
 static int SerialPutChar(struct SerialHardwareDevice *serial_dev, char c)
 {
     struct SerialCfgParam *serial_cfg = (struct SerialCfgParam *)serial_dev->private_data;
     struct Bk7258UartHwCfg *serial_hw_cfg = (struct Bk7258UartHwCfg *)serial_cfg->hw_cfg.private_data;
+    uint32 spins = 200000;
 
-    /* TX FIFO 满则等待 */
-    while (serial_hw_cfg->uart_handle->fifo_status.tx_fifo_full) {
+    /* TX FIFO 满则等待（有上限，避免一个不出字的口把内核拖死） */
+    while (serial_hw_cfg->uart_handle->fifo_status.tx_fifo_full && --spins) {
         ;
     }
 
-    serial_hw_cfg->uart_handle->fifo_port.tx_fifo_data_in = (uint32)(uint8)c;
+    serial_hw_cfg->uart_handle->fifo_port.v = (uint32)(uint8)c;
+
+    if ((*BK7258_SYS_DEV_CLK_EN & (1UL << 10)) &&
+        serial_hw_cfg->uart_handle != BK7258_UART1_BASE &&
+        !BK7258_UART1_BASE->fifo_status.tx_fifo_full) {
+        BK7258_UART1_BASE->fifo_port.v = (uint32)(uint8)c;
+    }
 
     return EOK;
 }
@@ -231,7 +268,9 @@ static int SerialGetChar(struct SerialHardwareDevice *serial_dev)
 
 static const struct SerialDataCfg data_cfg_init =
 {
-    .serial_baud_rate = BAUD_RATE_460800,   /* 实测值，不是常见的 115200 */
+    /* 115200 —— bootrom 下载握手的默认速率，正常启动后会保持。
+     * 见 bk7258_soc.h 里「这块板子引出的唯一串口是 UART0」的说明。 */
+    .serial_baud_rate = BAUD_RATE_115200,
     .serial_data_bits = DATA_BITS_8,
     .serial_stop_bits = STOP_BITS_1,
     .serial_parity_mode = PARITY_NONE,
@@ -303,41 +342,41 @@ int Bk7258HwUartInit(void)
 {
     x_err_t ret = EOK;
 
-#ifdef BSP_USING_UART1
-    memset(&serial_bus_1, 0, sizeof(struct SerialBus));
-    memset(&serial_driver_1, 0, sizeof(struct SerialDriver));
-    memset(&serial_device_1, 0, sizeof(struct SerialHardwareDevice));
+#ifdef BSP_USING_UART0
+    memset(&serial_bus_0, 0, sizeof(struct SerialBus));
+    memset(&serial_driver_0, 0, sizeof(struct SerialDriver));
+    memset(&serial_device_0, 0, sizeof(struct SerialHardwareDevice));
 
-    static struct SerialCfgParam serial_cfg_1;
-    memset(&serial_cfg_1, 0, sizeof(struct SerialCfgParam));
+    static struct SerialCfgParam serial_cfg_0;
+    memset(&serial_cfg_0, 0, sizeof(struct SerialCfgParam));
 
-    static struct Bk7258UartHwCfg serial_hw_cfg_1;
-    memset(&serial_hw_cfg_1, 0, sizeof(struct Bk7258UartHwCfg));
+    static struct Bk7258UartHwCfg serial_hw_cfg_0;
+    memset(&serial_hw_cfg_0, 0, sizeof(struct Bk7258UartHwCfg));
 
-    static struct SerialDevParam serial_dev_param_1;
-    memset(&serial_dev_param_1, 0, sizeof(struct SerialDevParam));
+    static struct SerialDevParam serial_dev_param_0;
+    memset(&serial_dev_param_0, 0, sizeof(struct SerialDevParam));
 
-    serial_driver_1.drv_done = &drv_done;
-    serial_driver_1.configure = SerialDrvConfigure;
-    serial_device_1.hwdev_done = &hwdev_done;
+    serial_driver_0.drv_done = &drv_done;
+    serial_driver_0.configure = SerialDrvConfigure;
+    serial_device_0.hwdev_done = &hwdev_done;
 
-    serial_cfg_1.data_cfg = data_cfg_init;
+    serial_cfg_0.data_cfg = data_cfg_init;
 
-    serial_cfg_1.hw_cfg.private_data = (void *)&serial_hw_cfg_1;
-    serial_hw_cfg_1.uart_handle = BK7258_CONSOLE_UART;
-    serial_hw_cfg_1.irq_type = BK7258_CONSOLE_IRQn;
-    serial_driver_1.private_data = (void *)&serial_cfg_1;
+    serial_cfg_0.hw_cfg.private_data = (void *)&serial_hw_cfg_0;
+    serial_hw_cfg_0.uart_handle = BK7258_CONSOLE_UART;
+    serial_hw_cfg_0.irq_type = BK7258_CONSOLE_IRQn;
+    serial_driver_0.private_data = (void *)&serial_cfg_0;
 
-    serial_dev_param_1.serial_work_mode = SIGN_OPER_INT_RX;
-    serial_device_1.haldev.private_data = (void *)&serial_dev_param_1;
+    serial_dev_param_0.serial_work_mode = SIGN_OPER_INT_RX;
+    serial_device_0.haldev.private_data = (void *)&serial_dev_param_0;
 
-    ret = BoardSerialBusInit(&serial_bus_1, &serial_driver_1, SERIAL_BUS_NAME_1, SERIAL_DRV_NAME_1);
+    ret = BoardSerialBusInit(&serial_bus_0, &serial_driver_0, SERIAL_BUS_NAME_0, SERIAL_DRV_NAME_0);
     if (EOK != ret) {
         KPrintf("Bk7258HwUartInit bus init failed, ret %u\n", ret);
         return ERROR;
     }
 
-    ret = BoardSerialDevBend(&serial_device_1, (void *)&serial_cfg_1, SERIAL_BUS_NAME_1, SERIAL_1_DEVICE_NAME_0);
+    ret = BoardSerialDevBend(&serial_device_0, (void *)&serial_cfg_0, SERIAL_BUS_NAME_0, SERIAL_0_DEVICE_NAME_0);
     if (EOK != ret) {
         KPrintf("Bk7258HwUartInit dev bind failed, ret %u\n", ret);
         return ERROR;

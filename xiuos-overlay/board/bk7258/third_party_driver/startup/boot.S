@@ -45,6 +45,11 @@ Reset_Handler:
     ldr     r0, =_sp
     msr     msp, r0
 
+    /* ---- 1b. 存活标记 ----
+     * 早于 .data/.bss，只用栈和 flash 常量。只有一个串口（UART0）可看，
+     * 这一行是判断「AP 到底有没有跑到我们代码」的唯一依据。 */
+    bl      Bk7258EarlyBoot
+
     /* ---- 2. 把 .data 从 flash 搬到 sram ---- */
     movs    r1, #0
     b       LoopCopyDataInit

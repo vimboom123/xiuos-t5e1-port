@@ -70,7 +70,7 @@ Beken 的 `bk_rtos` **本来就是一层可替换的 OS 抽象层** —— 它�
 | **AP 核 FLASH** | **3.5 MiB @`0x02120000`** | 同上，且与 `app.elf` 的 `.isr_vector` 地址吻合 |
 | **PSRAM** | 16 MiB @`0x60000000`（AP 侧现成两块共 9.6 MiB） | 同上 |
 | **控制台串口** | **UART1 @`0x45830000`，460800 8N1**（不是 UART0/115200） | `sdkconfig`: `CONFIG_UART_PRINT_PORT=1`、`CONFIG_UART_PRINT_BAUD_RATE=460800` |
-| **中断号映射** | 从 `app.elf` 的 `.vectors` 段逐项解析；**IRQ 15 = UART1** | `docs/06` §2.3 |
+| **中断号映射** | 从 `app.elf` 的 `.vectors` 段逐项解析；**IRQ 4 = UART0（控制台）**，IRQ 15 = UART1 | `docs/06` §2.3 |
 | **向量表结构** | 256 字 / 1024 B，SMP 下含多张 512 B 对齐表；初始 `_sp` = `0x28063800`（AP_RAM 顶端） | `app.elf` + `bk7258_ap_out.ld` |
 | **FPU** | BK7258 确实是 **M33F（带 FPU）**；`__NVIC_PRIO_BITS=3` | Beken `armstar.h` |
 | **上游侵入面** | **2 个文件、约 15 行**；`arch/arm/cortex-m33/` **零改动** | `docs/06` §4、§5 |
@@ -90,6 +90,7 @@ Beken 的 `bk_rtos` **本来就是一层可替换的 OS 抽象层** —— 它�
 | [`docs/07-build-environment.md`](docs/07-build-environment.md) | **构建环境与上游缺陷**（WSL 搭建、五个坑的现象/根因/修法、基线验证结果） |
 | [`docs/08-keeping-tuya-stack.md`](docs/08-keeping-tuya-stack.md) | **换掉 RTOS 后涂鸦那套还保不保得住**（实测移植面、智能体编排为何不受影响、两套垫片） |
 | [`docs/09-freertos-compat-layer.md`](docs/09-freertos-compat-layer.md) | **FreeRTOS API 兼容层设计**（路线 A，30 API 逐条映射 + 实现记录 + 四个坑） |
+| [`docs/10-bringup-uart0.md`](docs/10-bringup-uart0.md) | 上板记录：32+2 CRC 镜像格式、单串口烧录与控制台、四个根因、验收阶梯 ②③ |
 
 ---
 
@@ -182,3 +183,20 @@ xiuos-t5e1-port/
   补 `atomic.h` 时的取舍：没有搬 FreeRTOS 那套 port 原子宏，而是按本平台直接实现 ——
   AP 核在 XiZi 下是单核，所以「关中断 + 读改写」就够且正确。
   **若日后开 SMP 必须换成 LDREX/STREX**，这条写在了 `atomic.h` 文件头里。
+
+- 2026-09-16 深夜　**验收阶梯 ②「串口出 banner」、③「shell 可用」达成。** 见 `docs/10`。
+
+  ```
+  [XZ] reset: XiZi AP core alive
+  frc: FreeRTOS API compat layer ready, 65 APIs, no FreeRTOS kernel (XiZi underneath)
+  ... XiUOS banner / initialize vfs / fatfs / libc ...
+  letter:/$ initialize letter-shell system success
+  Hello, world!
+  letter:/$ ShowTask     → letter-shell RUNNING, sys_work, ktaskidle0, ZombieRecycleKTask
+  ```
+
+  板上只引出 UART0（`GND|CEN|RX0|TX0|VBAT`），控制台与 bootrom 烧录共用这一个口，115200。
+  打通前依次解决了：镜像缺 32+2 CRC、bk_loader 把写入长度截到 4K、UART0 系统级时钟/复用/分频无人配置、
+  UART `soft_reset` 低有效、AP 核处于安全态（`-DARCH_ARM_SECURE`）、UART0 中断需路由给 cpu1。
+
+- 下一步：验收阶梯 ④，XiZi 与 CP 核的 mailbox 对接，让原厂 Wi-Fi/BT 在 XiZi 下可用。

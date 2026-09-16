@@ -71,6 +71,9 @@ void SysTick_Handler(int irqn, void *arg)
  */
 void InitBoardHardware(void)
 {
+    /* 进度标记：只有 UART0 一个口可看，靠它定位卡在哪一步 */
+    Bk7258EarlyPuts("[XZ] 1 InitBoardHardware\n");
+
     /*
      * 1. 时钟
      *    Beken 的 bootloader 在跳过来之前已经把 PLL 配好了（120 MHz），
@@ -91,6 +94,7 @@ void InitBoardHardware(void)
      *    120000000 / 1000 = 120000，远小于 SysTick 的 24 位重载上限 16777215。
      */
     SysTick_Config(SystemCoreClock / TICK_PER_SECOND);
+    Bk7258EarlyPuts("[XZ] 2 systick\n");
 
     /*
      * 4. 内存池
@@ -98,14 +102,16 @@ void InitBoardHardware(void)
      *    中间 244 KiB 是 CP 核的 RAM，绝不能越界 —— 见 board.h 的说明。
      */
     InitBoardMemory(HEAP_BEGIN, HEAP_END);
+    Bk7258EarlyPuts("[XZ] 3 heap\n");
 
     /*
-     * 5. 控制台串口（UART1，460800 8N1）
-     *    波特率沿用 bootloader 的配置，理由见 connect_uart.c 文件头。
+     * 5. 控制台串口（UART0 = 板上 RX0/TX0，115200 8N1）
+     *    时钟/引脚/分频已在 Bk7258Uart0SysInit() 里显式配好。
      */
 #ifdef BSP_USING_UART
     Bk7258HwUartInit();
 #endif
+    Bk7258EarlyPuts("[XZ] 4 uart driver\n");
 
     /*
      * 7. 装控制台
@@ -113,6 +119,7 @@ void InitBoardHardware(void)
      *    与 Bk7258HwUartInit() 里注册的 bus/driver/device 名字必须一致。
      */
     InstallConsole(KERNEL_CONSOLE_BUS_NAME, KERNEL_CONSOLE_DRV_NAME, KERNEL_CONSOLE_DEVICE_NAME);
+    Bk7258EarlyPuts("[XZ] 5 console installed\n");
 
     /*
      * 8. FreeRTOS API 兼容层
@@ -124,4 +131,5 @@ void InitBoardHardware(void)
      *    「frc: FreeRTOS API compat layer ready」就说明这一层起来了。
      */
     FreeRTOSCompatInit();
+    Bk7258EarlyPuts("[XZ] 6 board init done\n");
 }

@@ -1,20 +1,29 @@
-menuconfig BSP_USING_UART1
-    bool "Enable UART1 (console)"
+menuconfig BSP_USING_UART0
+    bool "Enable UART0 (console)"
     default y
-    if BSP_USING_UART1
-        config SERIAL_BUS_NAME_1
-            string "serial bus 1 name"
-            default "uart1"
-        config SERIAL_DRV_NAME_1
-            string "serial bus 1 driver name"
-            default "uart1_drv"
-        config SERIAL_1_DEVICE_NAME_0
-            string "serial bus 1 device name"
-            default "uart1_dev0"
-        config SERIAL_1_BAUD_RATE
-            int "serial 1 baud rate"
-            default 460800
+    help
+      这块板子的排针只引出了一路串口，丝印是 GND | CEN | RX0 | TX0 | VBAT，
+      也就是 **UART0**。BKFIL 也正是通过 UART0 完成烧写的。
+
+      （TuyaOpen 的 T5AI 开发板用 UART1 做控制台，sdkconfig 里是
+        CONFIG_UART_PRINT_PORT=1 —— 那是开发板的定义，不适用于这块板子。
+        照抄它会让输出发到一个没接线的口上，症状是"烧写成功但一个字都收不到"。）
+
+    if BSP_USING_UART0
+        config SERIAL_BUS_NAME_0
+            string "serial bus 0 name"
+            default "uart0"
+        config SERIAL_DRV_NAME_0
+            string "serial bus 0 driver name"
+            default "uart0_drv"
+        config SERIAL_0_DEVICE_NAME_0
+            string "serial bus 0 device name"
+            default "uart0_dev0"
+        config SERIAL_0_BAUD_RATE
+            int "serial 0 baud rate"
+            default 115200
             help
-              BK7258 的日志/控制台口默认 460800（见 TuyaOpen sdkconfig 的
-              CONFIG_UART_PRINT_BAUD_RATE），不是常见的 115200。
+              bootrom 用 115200 做下载握手，正常启动后会保持这个速率。
+              本层不重配波特率 —— 在 UART0 的输入时钟未被实测确认之前，
+              重配等于拿唯一的调试通道去赌。
     endif

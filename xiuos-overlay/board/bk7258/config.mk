@@ -25,7 +25,12 @@ export LFLAGS   := $(CPU_FLAGS) -ffunction-sections -fdata-sections \
                    -Wl,--gc-sections,-Map=XiZi-bk7258.map,-cref,-u,Reset_Handler \
                    -T $(BSP_ROOT)/link.lds
 
-export DEFINES := -DHAVE_CCONFIG_H
+# ARCH_ARM_SECURE：BK7258 的 AP 核跑在安全态（TuyaOpen/原厂 sdkconfig 都是 CONFIG_SPE=1，
+# 外设走不带 0x10000000 偏移的安全地址，向量表里有 SecureFault）。
+# 不定义时 arch/arm/cortex-m33/prepare_ahwstack.c 给新任务填 EXC_RETURN=0xFFFFFFBC（返回非安全态），
+# 第一次任务切换就进异常 —— 2026-09-16 v5 实测停在 XiUOSStartup 之后的故障现场。
+# 上游没有对应的 Kconfig 符号，只能在这里定义。
+export DEFINES := -DHAVE_CCONFIG_H -DARCH_ARM_SECURE
 
 export ARCH = arm
 export MCU  = cortex-m33
