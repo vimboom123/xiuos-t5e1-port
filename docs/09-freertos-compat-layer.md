@@ -315,9 +315,97 @@ XiUOS 上游有些头单独包含会失败，例如 `kernel/include/xs_msg.h:34`
 
 | 项 | 状态 |
 |---|---|
-| 编译 + 链接 | ✅ 已验证（33/33） |
+| 编译 + 链接进 XiUOS 镜像 | ✅ 已验证（33/33） |
+| **与真实 TKL 源码的编译兼容** | ✅ **已验证（9/10，见 §8）** |
 | 运行时行为 | ❌ **未验证** —— 要等上板 |
 | ISR 变体的安全性 | ❌ 未实测。`xSemaphoreGiveFromISR` / `xQueueSendFromISR` / `vTaskNotifyGiveFromISR` 在 ISR 里调 XiZi 原语是否安全，`docs/09 §4.4` 已说明第一版策略是关中断包住，但没跑过 |
 | 超时精度 | ❌ 未实测。`ulTaskNotifyTake` 的等待只做一次、不重算剩余时间（见 `frc_notify.c` 文件头） |
-| 与真实 TKL 的编译兼容 | ❌ **未验证** —— 需要先把 TuyaOpen 与 XiUOS 的构建打通。这是最有价值的下一个验证动作 |
 | `vTaskPrioritySet` | ⚠️ 故意不实现 —— 上游 `xs_ktask.h:186` 写着 `KTaskPrioSet is bugged, dont use this` |
+
+---
+
+## 8. 用真实 TKL 源码验证（2026-09-16）
+
+§7 的表格里，「与真实 TKL 的编译兼容」原本是未验证项。这一节把它补上 ——
+**这是整个兼容层最有价值的一次验证**，因为它测的不是我的理解，而是真实调用方。
+
+**做法**（`tools/tkl-compat-test.sh`）：只**编译**、不链接。
+把 `platform/T5AI/tuyaos/tuyaos_adapter/src/system/` 下的真实 TKL 源码
+用我的 compat include 编译一遍。编译通过就足以证明签名与调用方一致 ——
+链接需要整个 Beken SDK + TuyaOpen 的构建打通，那是下一步的事。
+
+关键细节：**compat 的 include 必须排在 Beken 前面**，否则测的就不是我的兼容层，
+因为 Beken 自己也带 `FreeRTOS.h` / `task.h` / `semphr.h` / `queue.h` /
+`FreeRTOSConfig.h` / `portmacro.h`。脚本末尾会打印实际命中的头文件路径来核对这一点。
+
+**结果**
+
+```
+[OK] tkl_thread.c      [OK] tkl_mutex.c       [OK] tkl_semaphore.c
+[OK] tkl_queue.c       [OK] tkl_system.c      [OK] tkl_task_notify.c
+[OK] tkl_memory.c      [OK] tkl_atomic.c      [OK] tkl_output.c
+[!!] tkl_sleep.c   -> system_hw.h: No such file or directory
+
+9 通过 / 1 失败
+```
+
+命中的头文件确认是我的：
+
+```
+<repo>/freertos_compat/include/FreeRTOS.h
+<repo>/freertos_compat/include/FreeRTOSConfig.h
+<repo>/freertos_compat/include/portmacro.h
+<repo>/freertos_compat/include/task.h
+```
+
+### 这次测试发现了三个真缺口 —— 都是「只看文档看不出来」的
+
+**缺口 1：TKL 不只调用 FreeRTOS 的公开 API，还直接包含它的内部实现头。**
+
+实测：
+
+| 文件 | 包含的内部头 |
+|---|---|
+| `tkl_atomic.c:17`、`tkl_system.c:21` | `atomic.h` |
+| `tkl_thread.c:17` | `mpu_wrappers.h` |
+| `tkl_thread.c:19`、`tkl_semaphore.c:15` | `projdefs.h` |
+
+`atomic.h` 是**实现头**，不是声明头 —— `tkl_atomic.c` 直接用
+`Atomic_Increment_u32` / `Atomic_Decrement_u32` / `Atomic_Add_u32` /
+`Atomic_Subtract_u32` / `Atomic_SwapPointers_p32` /
+`Atomic_CompareAndSwap_u32` / `Atomic_CompareAndSwapPointers_p32` 这 7 个操作。
+
+→ 补了 `include/atomic.h`。**没有搬 FreeRTOS 那一整套 port 原子宏**，
+而是按本平台直接实现：BK7258 AP 核在 XiZi 下是单核（`.defconfig` 里
+`CONFIG_ARCH_SMP` 未开），所以「关中断 + 读改写」就是正确的原子实现。
+**若日后开 SMP，这里必须换成 LDREX/STREX**，否则关本核中断挡不住另一个核 ——
+这条已写在 `atomic.h` 的文件头里。
+
+→ 另补 `include/projdefs.h`（布尔常量与 `pdMS_TO_TICKS`，并把 `FreeRTOS.h`
+里重复的部分移过去，与原版分工一致）和 `include/mpu_wrappers.h`（空实现，
+本平台不开 FreeRTOS 的 MPU）。
+
+**缺口 2：两个废弃别名不能省。**
+
+| 报错 | 原因 | 修法 |
+|---|---|---|
+| `'portTICK_RATE_MS' undeclared`（3 处） | FreeRTOS V10.4 后改名 `portTICK_PERIOD_MS`，TKL 仍用旧名 | `portmacro.h` 里加别名 |
+| `unknown type name 'xQueueHandle'`（`tkl_queue.c`） | 旧名 `xQueueHandle`，现名 `QueueHandle_t` | `queue.h` 里加 typedef 别名，顺带给 `semphr.h` 也加了 `xSemaphoreHandle` |
+
+**缺口 3（不是兼容层的问题）：`tkl_sleep.c` 编译不过。**
+
+报 `system_hw.h: No such file or directory` —— 那是 **Beken SDK 的电源管理头链**，
+不是 FreeRTOS 相关的。而且 `tkl_sleep.c` **本来就不在那 6 个使用 FreeRTOS 的文件里**
+（`analysis/tkl-system-freertos-surface.txt` 里它一次都没出现）。
+
+→ **明确不追**。它是 Beken 的功耗适配器，追它的头链属于「打通完整构建」那件事，
+不属于「验证兼容层」。这也是为什么 9/10 而不是 10/10 是**可接受的结论**。
+
+### 这次验证把不确定性缩到了什么程度
+
+| 之前的不确定性 | 现在的状态 |
+|---|---|
+| 「我猜的签名对不对」 | ✅ **消除了** —— 真实调用方编译通过 |
+| 「是不是漏了某些 API」 | ✅ **基本消除** —— 缺的三个头都是编译期硬报错，不是静默问题 |
+| 「Beken 自带的 FreeRTOS 头会不会干扰」 | ✅ 已确认不会（compat 在 include 顺序上优先，且脚本会核对命中路径） |
+| 「运行时行为对不对」 | ❌ **仍未验证** —— 只能上板 |

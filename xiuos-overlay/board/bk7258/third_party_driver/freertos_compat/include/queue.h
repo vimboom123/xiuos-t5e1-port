@@ -20,6 +20,10 @@ typedef void *QueueHandle_t;
 typedef void *QueueSetHandle_t;
 typedef void *QueueSetMemberHandle_t;
 
+/* 废弃别名。FreeRTOS 早期版本用 xQueueHandle，后来统一改成 QueueHandle_t；
+ * TKL 里仍在用旧名（实测 tkl_queue.c 报 "unknown type name 'xQueueHandle'"）。 */
+typedef QueueHandle_t xQueueHandle;
+
 /* 队列已满 / 空 的返回标记（xQueueReceive 等用不到，保留给调用方） */
 #define queueQUEUE_IS_MUTEX     NULL
 

@@ -114,6 +114,9 @@ extern void vPortExitCritical(void);
 /* 任务切换时的栈增长方向与栈填充值（供栈使用量统计用） */
 #define portSTACK_GROWTH                (-1)
 #define portTICK_PERIOD_MS              ((TickType_t)1000 / configTICK_RATE_HZ)
+/* 废弃别名。FreeRTOS 在 V10.4 之后把 portTICK_RATE_MS 改名为 portTICK_PERIOD_MS，
+ * 但 TKL 仍用旧名（实测 tkl_thread.c / tkl_system.c 等共 3 处），所以两个都要给。 */
+#define portTICK_RATE_MS                portTICK_PERIOD_MS
 
 /* 位操作 —— FreeRTOS 的 list/task 内部用不到，但调用方偶尔引用 */
 #define portINLINE                      inline

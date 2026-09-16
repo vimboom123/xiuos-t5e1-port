@@ -163,5 +163,22 @@ xiuos-t5e1-port/
   | **常量折叠让链接校验失效** | 加了覆盖表后，`if (table[0] == NULL)` 被 GCC 折叠 → 对表的引用消失 → 表与它引用的几十个 API 一起被回收。索引必须走 `volatile` |
   | `KTaskCoreCombine` 只在 `ARCH_SMP` 下存在 | 单核构建下 undefined reference |
 
-  **仍待验证**：运行时行为、ISR 变体安全性、超时精度、以及与真实 TKL 源码的编译兼容
-  （最后一项需先打通 TuyaOpen 与 XiUOS 的构建）。
+  **仍待验证**：运行时行为、ISR 变体安全性、超时精度。
+  **与真实 TKL 源码的编译兼容已验证通过**（见下）。
+
+- 2026-09-16　**用真实 TKL 源码验证兼容层：9/10 编译通过。**
+  只编译不链接（`tools/tkl-compat-test.sh`），把 `tuyaos_adapter/src/system/` 下的
+  真实 TKL 源码用 compat include 编译一遍 —— 编译通过即证明签名与调用方一致。
+  脚本会核对实际命中的头文件路径，确认用的是我们的而不是 Beken 自带的。
+
+  这次测试发现了三个**只看文档看不出来**的缺口，都已修：
+
+  | 缺口 | 内容 |
+  |---|---|
+  | TKL 直接用 FreeRTOS 的**内部实现头** | `atomic.h`（7 个原子操作）、`projdefs.h`、`mpu_wrappers.h` —— 公开 API 之外还要提供这三个 |
+  | 两个废弃别名不能省 | `portTICK_RATE_MS`（V10.4 后改名）、`xQueueHandle`（现名 `QueueHandle_t`） |
+  | `tkl_sleep.c` 编译不过 | 缺的是 **Beken 电源管理**头链，与 FreeRTOS 无关；它本来就不在那 6 个用 FreeRTOS 的文件里，**明确不追** |
+
+  补 `atomic.h` 时的取舍：没有搬 FreeRTOS 那套 port 原子宏，而是按本平台直接实现 ——
+  AP 核在 XiZi 下是单核，所以「关中断 + 读改写」就够且正确。
+  **若日后开 SMP 必须换成 LDREX/STREX**，这条写在了 `atomic.h` 文件头里。

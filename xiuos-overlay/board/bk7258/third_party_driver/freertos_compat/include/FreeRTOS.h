@@ -22,6 +22,7 @@
 
 #include "FreeRTOSConfig.h"
 #include "portmacro.h"
+#include "projdefs.h"   /* 布尔常量与 pdMS_TO_TICKS —— TKL 有两个文件直接包含它 */
 #include "portable.h"   /* 堆与 port 接口（与原版 FreeRTOS.h 的包含结构一致） */
 
 #ifdef __cplusplus
@@ -29,15 +30,8 @@ extern "C" {
 #endif
 
 /* ==========================================================================
- * 布尔与状态常量
+ * 布尔与状态常量在 projdefs.h 里（与原版 FreeRTOS 的分工一致）
  * ========================================================================== */
-#define pdTRUE          ((BaseType_t)1)
-#define pdFALSE         ((BaseType_t)0)
-#define pdPASS          pdTRUE
-#define pdFAIL          pdFALSE
-
-#define pdTICKS_TO_MS(xTicks)   ((TickType_t)(((TickType_t)(xTicks)) / (TickType_t)configTICK_RATE_HZ * (TickType_t)1000))
-#define pdMS_TO_TICKS(xTimeInMs) ((TickType_t)(((TickType_t)(xTimeInMs)) * (TickType_t)configTICK_RATE_HZ / (TickType_t)1000))
 
 /* Beken 私有：任务不绑核 */
 #define tskNO_AFFINITY  ((BaseType_t)0x7FFFFFFF)

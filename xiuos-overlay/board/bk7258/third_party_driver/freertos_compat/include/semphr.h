@@ -36,6 +36,9 @@ typedef void *SemaphoreHandle_t;
 /* FreeRTOS 原版把 MutexHandle_t 定义为 SemaphoreHandle_t 的别名 */
 typedef SemaphoreHandle_t MutexHandle_t;
 
+/* 废弃别名，与 queue.h 里的 xQueueHandle 同理 */
+typedef SemaphoreHandle_t xSemaphoreHandle;
+
 /* ---- 创建 ---- */
 SemaphoreHandle_t xSemaphoreCreateMutex(void);
 SemaphoreHandle_t xSemaphoreCreateRecursiveMutex(void);
