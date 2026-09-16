@@ -74,6 +74,7 @@ Beken 的 `bk_rtos` **本来就是一层可替换的 OS 抽象层** —— 它�
 | [`docs/03-arch-board.md`](docs/03-arch-board.md) | XiUOS `arch/` 与 `board/` 现状与模板 |
 | [`docs/04-shim-design.md`](docs/04-shim-design.md) | `bk_rtos/xizi/` 设计：95 函数映射表 |
 | [`docs/05-open-questions.md`](docs/05-open-questions.md) | 未决项与风险 |
+| [`docs/06-board-bk7258-checklist.md`](docs/06-board-bk7258-checklist.md) | **`board/bk7258/` 逐文件实现清单**（含实测内存映射、上游改动面、验收阶梯） |
 
 ---
 
@@ -84,7 +85,7 @@ xiuos-t5e1-port/
 ├── README.md                      本文件
 ├── docs/                          设计与分析文档
 ├── analysis/                      实测原始数据（nm 导出、扫描结果）
-├── xiuz-overlay/                  XiUOS 侧新增/修改文件的 overlay
+├── xiuos-overlay/                 XiUOS 侧新增/修改文件的 overlay
 │   ├── arch/cortex-m33-notes/
 │   └── board/bk7258/
 ├── beken-overlay/                 Beken 侧新增文件的 overlay
@@ -101,4 +102,6 @@ xiuos-t5e1-port/
 ## 状态
 
 - 2026-09-16　完成可行性实测与架构判定。见 `docs/01` ~ `docs/05`。
-- 下一步：读 `board/nuvoton-m2354/` 的 6 个核心文件，产出 `board/bk7258/` 逐文件实现清单。
+- 2026-09-16　读完 `board/nuvoton-m2354/` 6 个核心文件 + 构建系统全链路，产出 `docs/06` 逐文件实现清单。
+  实测结论：**上游只需改 2 个文件约 15 行**，`arch/arm/cortex-m33/` 零改动（影子头文件解耦 FSP）。
+- 下一步：按 `docs/06` 建 `board/bk7258/` 骨架，跑通「链接通过 → 串口出 banner → shell 可用」。
