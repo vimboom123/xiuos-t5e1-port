@@ -43,6 +43,8 @@ KERNELPATHS += \\
 \t-I$(BSP_ROOT) \\
 \t-I$(BSP_ROOT)/include \\
 \t-I$(BSP_ROOT)/third_party_driver/include \\
+\t-I$(BSP_ROOT)/third_party_driver/freertos_compat/include \\
+\t-I$(BSP_ROOT)/third_party_driver/freertos_compat/src \\
 \t-I$(KERNEL_ROOT)/include #
 endif
 """.strip("\n")

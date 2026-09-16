@@ -89,6 +89,7 @@ Beken 的 `bk_rtos` **本来就是一层可替换的 OS 抽象层** —— 它�
 | [`docs/06-board-bk7258-checklist.md`](docs/06-board-bk7258-checklist.md) | **`board/bk7258/` 逐文件实现清单**（含实测内存映射、上游改动面、验收阶梯） |
 | [`docs/07-build-environment.md`](docs/07-build-environment.md) | **构建环境与上游缺陷**（WSL 搭建、五个坑的现象/根因/修法、基线验证结果） |
 | [`docs/08-keeping-tuya-stack.md`](docs/08-keeping-tuya-stack.md) | **换掉 RTOS 后涂鸦那套还保不保得住**（实测移植面、智能体编排为何不受影响、两套垫片） |
+| [`docs/09-freertos-compat-layer.md`](docs/09-freertos-compat-layer.md) | **FreeRTOS API 兼容层设计**（路线 A，30 API 逐条映射 + 实现记录 + 四个坑） |
 
 ---
 
@@ -142,3 +143,25 @@ xiuos-t5e1-port/
 
 - 下一步：上板。把 `XiZi-bk7258.bin` 烧进 T5-E1，验收阶梯 ②「串口出 banner」→ ③「shell 可用」。
   这两步是纯 BSP 工作，**不需要碰 Beken 的闭源库**；④ 之后才要面对 `bk_rtos` 那 95 个函数。
+- 2026-09-16　**决策：TKL 那层走路线 A（FreeRTOS API 兼容层），不改 Tuya 代码。**
+  见 `docs/09`。已实现并核验：
+
+  ```
+  构建日志 error 行数: 0
+  向量表 16 项不匹配: 0
+  可用堆: 0x28016894..0x28063800 = 307 KiB (92% of AP_RAM)
+  FreeRTOS API 兼容层: 33/33 全部链入
+  未定义符号: 0
+  ```
+
+  实现过程中撞到四个坑，其中两个是**「构建成功」的假象**，值得单独记住：
+
+  | 坑 | 现象 |
+  |---|---|
+  | 上游 `make` 吞掉子目录失败 | 顶层用 `for dir in ...; do $(MAKE) -C $$dir; done`，循环退出码取最后一条命令 → 中间目录编译失败仍返回 0 |
+  | `--gc-sections` 回收整层 | 没有调用方时整层被回收，`make` 成功但一个符号都没进镜像 |
+  | **常量折叠让链接校验失效** | 加了覆盖表后，`if (table[0] == NULL)` 被 GCC 折叠 → 对表的引用消失 → 表与它引用的几十个 API 一起被回收。索引必须走 `volatile` |
+  | `KTaskCoreCombine` 只在 `ARCH_SMP` 下存在 | 单核构建下 undefined reference |
+
+  **仍待验证**：运行时行为、ISR 变体安全性、超时精度、以及与真实 TKL 源码的编译兼容
+  （最后一项需先打通 TuyaOpen 与 XiUOS 的构建）。

@@ -150,7 +150,19 @@ echo
 echo "=== [5/6] 构建 BOARD=$BOARD ==="
 make BOARD="$BOARD" > /tmp/xizi-build.log 2>&1
 rc=$?
-echo "  make 退出码: $rc  （完整日志 /tmp/xizi-build.log，$(wc -l < /tmp/xizi-build.log) 行）"
+
+# 【不能只看 make 的退出码】
+# 上游顶层 Makefile:87 写的是
+#     @for dir in $(SRC_DIR);do $(MAKE) -C $$dir; done
+# shell 的 for 循环退出码 = **最后一条命令**的状态。所以中间任何一个子目录
+# 编译失败，只要最后一个目录成功，整个 make 就返回 0。
+# 必须自己扫日志。这个坑会让「构建成功」变成假象。
+err_count=$(grep -cE 'error:|Error [0-9]' /tmp/xizi-build.log)
+if [ "$err_count" -gt 0 ] && [ $rc -eq 0 ]; then
+    echo "  !! make 返回 0，但日志里有 $err_count 条错误 —— 上游 for 循环吞掉了子目录失败"
+    rc=99
+fi
+echo "  make 退出码: $rc  （日志 /tmp/xizi-build.log，$(wc -l < /tmp/xizi-build.log) 行，错误 $err_count 条）"
 
 echo
 echo "=== [6/6] 结果 ==="

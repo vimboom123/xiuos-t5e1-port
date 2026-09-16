@@ -23,6 +23,22 @@
 #include <bk7258_soc.h>
 #include <connect_uart.h>
 
+#include <FreeRTOS.h>   /* 兼容层；FreeRTOSCompatInit() 的声明在这里 */
+
+/* ==========================================================================
+ * FreeRTOS API 兼容层
+ *
+ * 见 docs/09-freertos-compat-layer.md。它不是 FreeRTOS 内核 —— 只提供 API 形状，
+ * 实现全部转调 XiZi 原语，目的是让 Tuya 的 TKL 系统层
+ * （platform/T5AI/tuyaos/tuyaos_adapter/src/system/ 那 6 个文件）一行不改就能跑。
+ *
+ * 为什么在这个阶段（还没接 Tuya）就要把它链进来：
+ *   1. XiUOS 的 LFLAGS 带 -Wl,--gc-sections，没有引用的段会被整个回收，
+ *      于是「编译过了」不代表「链接得过」。这里显式引用一下，
+ *      未定义符号才会在链接期暴露，而不是等到接 Tuya 的那一天。
+ *   2. 它只分配一块控制块表，不创建任务、不占栈，几乎没有运行时开销。
+ * ========================================================================== */
+
 /*
  * 调用链（已核对上游源码）：
  *   Reset_Handler (startup/boot.S)
@@ -92,9 +108,20 @@ void InitBoardHardware(void)
 #endif
 
     /*
-     * 6. 装控制台
+     * 7. 装控制台
      *    三个名字由 connect_uart.h 从 Kconfig 映射过来，
      *    与 Bk7258HwUartInit() 里注册的 bus/driver/device 名字必须一致。
      */
     InstallConsole(KERNEL_CONSOLE_BUS_NAME, KERNEL_CONSOLE_DRV_NAME, KERNEL_CONSOLE_DEVICE_NAME);
+
+    /*
+     * 8. FreeRTOS API 兼容层
+     *    必须在任何 Tuya 代码调用 xTaskCreate / xSemaphoreTake 之前跑一次，
+     *    它要初始化句柄控制块表与任务通知表。
+     *
+     *    刻意放在 InstallConsole() **之后**：它自己会打一行启动日志，
+     *    而控制台装好之前 KPrintf 是没有出口的。上板时看到这行
+     *    「frc: FreeRTOS API compat layer ready」就说明这一层起来了。
+     */
+    FreeRTOSCompatInit();
 }
