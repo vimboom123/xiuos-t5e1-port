@@ -1,0 +1,17 @@
+diff --git a/boards/T5AI/Kconfig b/boards/T5AI/Kconfig
+index 1ed7e59..63eef1c 100644
+--- a/boards/T5AI/Kconfig
++++ b/boards/T5AI/Kconfig
+@@ -146,6 +146,12 @@ choice
+             rsource "./NICEMCU_T5_0_96ISP/Kconfig"
+         endif
+ 
++    config BOARD_CHOICE_LINKH_T5E1
++        bool "LINKH_T5E1"
++        if (BOARD_CHOICE_LINKH_T5E1)
++            rsource "./LINKH_T5E1/Kconfig"
++        endif
++
+ # <new-board-add: This line cannot be deleted or modified>
+ 
+ endchoice

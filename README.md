@@ -311,6 +311,7 @@ m33 架构层对 Renesas FSP 的耦合**精确是 3 处**，全部由 BSP 侧顶
 | [`docs/09-freertos-compat-layer.md`](docs/09-freertos-compat-layer.md) | **FreeRTOS API 兼容层设计**（TKL 所需的 30 个 API 逐条映射 + 实现记录；本层共提供 65 个） |
 | [`docs/10-bringup-uart0.md`](docs/10-bringup-uart0.md) | **上板记录**：CRC 镜像格式、单串口烧录、四个根因、②③ 达成 |
 | [`docs/11-devlog.md`](docs/11-devlog.md) | 开发时间线（本文档原「状态」一节的内容） |
+| [`docs/11-tuyaopen-e2e-baseline.md`](docs/11-tuyaopen-e2e-baseline.md) | 涂鸦端到端基线：CLI 建产品、联泓板级配置、日志改到 UART0、整片烧录、App 配网实测 |
 
 ---
 
@@ -360,3 +361,7 @@ xiuos-t5e1-port/
 ## 10. 联系
 
 问题请开 issue。上游 XiUOS：https://www.gitlink.org.cn/xuos/xiuos
+
+- 2026-09-16 深夜　**涂鸦端到端基线（FreeRTOS）上板。** 见 `docs/11`，改动在 `tuyaopen-overlay/`。
+  CLI 复制出新产品，自建 `LINKH_T5E1` 板级配置，TAL 日志挂到 UART0，整片烧录后设备进入配网，
+  App 蓝牙配网链路与令牌下发已通；激活上云待 2.4G 热点复测。

@@ -1,0 +1,12 @@
+--- a/source/embedded/src/tuya_main.c
++++ b/source/embedded/src/tuya_main.c
+@@ -318,6 +318,9 @@
+     tal_workq_init();
+     tal_time_service_init();
+     tal_cli_init();
++    /* 联泓 T5-E1 板只引出 UART0（RX0/TX0），平台日志口 UART1 没接出来。
++       tal_cli_init() 已按 115200 打开 UART0，这里把 TAL 日志也挂上去。 */
++    tal_log_add_output_term("uart0", user_log_output_cb);
+     tuya_authorize_init();
+ 
+     reset_netconfig_start();
