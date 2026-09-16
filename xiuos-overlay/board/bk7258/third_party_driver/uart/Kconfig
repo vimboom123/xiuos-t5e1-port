@@ -1,0 +1,20 @@
+menuconfig BSP_USING_UART1
+    bool "Enable UART1 (console)"
+    default y
+    if BSP_USING_UART1
+        config SERIAL_BUS_NAME_1
+            string "serial bus 1 name"
+            default "uart1"
+        config SERIAL_DRV_NAME_1
+            string "serial bus 1 driver name"
+            default "uart1_drv"
+        config SERIAL_1_DEVICE_NAME_0
+            string "serial bus 1 device name"
+            default "uart1_dev0"
+        config SERIAL_1_BAUD_RATE
+            int "serial 1 baud rate"
+            default 460800
+            help
+              BK7258 的日志/控制台口默认 460800（见 TuyaOpen sdkconfig 的
+              CONFIG_UART_PRINT_BAUD_RATE），不是常见的 115200。
+    endif
